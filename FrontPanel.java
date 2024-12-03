@@ -407,7 +407,8 @@ public class FrontPanel extends javax.swing.JFrame {
     private double totalAmount = 0.0;
     
     private void addToCart() {
-    String productName = ProductField1.getText(); // Get the product name
+    // Get the product name from the input field
+    String productName = ProductField1.getText(); 
     int stock;
 
     try {
@@ -426,8 +427,20 @@ public class FrontPanel extends javax.swing.JFrame {
         return;
     }
 
+    DefaultTableModel model = (DefaultTableModel) ITemSummary.getModel();
+
+    // Check if the item already exists in the cart
+    for (int i = 0; i < model.getRowCount(); i++) {
+        String existingProductName = model.getValueAt(i, 0).toString();
+        if (productName.equalsIgnoreCase(existingProductName)) {
+            JOptionPane.showMessageDialog(this, 
+                "The item \"" + productName + "\" is already in the cart. Please remove it before adding it again.");
+            return;
+        }
+    }
+
     try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
-        // Query to check product details by product name
+
         String query = "SELECT Stock, Price FROM inventory WHERE Product_Name = ?";
         PreparedStatement stmt = conn.prepareStatement(query);
         stmt.setString(1, productName); // Use product name to look up the product in the database
@@ -440,14 +453,14 @@ public class FrontPanel extends javax.swing.JFrame {
 
             // Check if sufficient stock is available
             if (stock > availableStock) {
-                JOptionPane.showMessageDialog(this, "Insufficient stock available. Only " + availableStock + " left.");
+                JOptionPane.showMessageDialog(this, 
+                    "Insufficient stock available. Only " + availableStock + " left.");
                 return;
             }
 
             // Add the item to the cart 
             double total = price * stock;
             totalAmount += total;
-            DefaultTableModel model = (DefaultTableModel) ITemSummary.getModel();
             model.addRow(new Object[]{productName, stock, price, total});
             TotalLabel.setText(String.format("TOTAL: %.2f", totalAmount));
 
